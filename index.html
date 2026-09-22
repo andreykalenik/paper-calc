@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Калькулятор раскроя бумаги</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAAsSAAALEgHS3X78AAABRElEQVQ4y52STytEYRSHn/eec+c2Y+YmX8DKwlewo6xuEyXKQsjmfgdWWCqfwCdRZCP/SmKSFOWa0G2iMRbGzFwL5hoM8+e3/NXznPd0XhMViOgy90/jaLfw3eMYB7n57gS3YZbD8zlELKxO4SD02DubReRjdkeCIPTYPZkhkXDirm1BEHrsHE2TTPbEnTGmPUEQemztT5LJuA0wqGprQRB6bO5O4Lq9GGPiXkRRlRZXcHxOrzxct4yIfO1tWYgIIvLPCxwfnGVGUwsM9OW+7a2qqCoif63g+JBag5cprHSBweIq/eljgE/wY7qqYH595TpcysLbNgC1R0PlwuYyvUj+dQjbVlRtbFt/CJrA9URlQ/VCuE4scVcZaSL4B/6yQDWwuKmsEEajqNYF7cCNnqIhX1qnUBvGRCU/6gSOU4GH5w3eAW/kcbB0ePriAAAAAElFTkSuQmCC">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Roboto, Arial, Helvetica, sans-serif;
+    background: #f2f2f2;
+    color: #222;
+    line-height: 1.4;
+  }
+  .page { max-width: 1400px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { text-align: center; font-size: 28px; margin: 8px 0 16px; }
+
+  .cl {
+    background: #fff;
+    box-shadow: 0 2px 14px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
+
+  /* === Горизонтальная раскладка: канвас слева, UI справа === */
+  .cl-layout {
+    display: flex;
+    flex-direction: row-reverse; /* UI справа, канвас слева */
+  }
+
+  .cl-ui {
+    background: #e5e5e5;
+    padding: 18px 18px 12px;
+    flex: 0 0 480px;
+    /* max-width: 420px;
+    min-width: 320px; */
+  }
+
+  .cl-image {
+    padding: 16px;
+    background: #fff;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .cl-ic { display: flex; gap: 24px; flex-wrap: wrap; }
+  .cl-input, .cl-result { flex: 1 1 100%; }
+
+  .field { margin-bottom: 14px; }
+  .field-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+  .field-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cl input[type="number"] {
+    width: 110px;
+    padding: 8px 10px;
+    font-size: 16px;
+    text-align: center;
+    border: 1px solid #838383;
+    background: #fff;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .cl input::-webkit-outer-spin-button,
+  .cl input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .x-sep { font-size: 18px; font-weight: 600; color: #555; }
+  .swap-btn {
+    border: 1px solid #999; background: #fff;
+    width: 36px; height: 36px; cursor: pointer; font-size: 16px; line-height: 1;
+    flex: 0 0 auto;
+  }
+  .swap-btn:hover { background: #eee; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .preset-chip {
+    border: 2px solid #7dcb00;
+    background: #fff;
+    color: #2f5c00;
+    padding: 6px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .preset-chip:hover { background: #eef9d8; }
+  .preset-chip.active { background: #7dcb00; color: #fff; }
+
+  .check-row {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; border: 1px solid #ccc;
+    padding: 10px 12px; margin-top: 4px; cursor: pointer; user-select: none;
+    font-size: 15px;
+  }
+  .check-row input { width: 20px; height: 20px; accent-color: #6ab000; cursor: pointer; }
+  .result-grid > .check-row { margin-top: 0; }
+
+  .cl-result .field-row { justify-content: flex-start; }
+  .cl-result { display: flex; flex-direction: column; }
+  .result-grid { display: grid; gap: 10px; flex: 1; grid-auto-rows: 1fr; align-content: stretch; }
+  .result-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #f7f7f7; padding: 8px 12px; }
+  .result-item span { font-size: 15px; }
+  .result-value { font-size: 16px; font-weight: 600; min-width: 80px; text-align: right; }
+  .result-item.highlight { background: #eaf7cc; border: 1px solid #7dcb00; }
+  .result-item.highlight .result-value { font-weight: 700; font-size: 20px; }
+
+  #compare-wrap { margin: 4px 2px 0; }
+  #compare-wrap[hidden] { display: none; }
+  #compare-table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
+  #compare-table th, #compare-table td { border: 1px solid #999; padding: 5px 8px; text-align: center; }
+  #compare-table th { background: #dcdcdc; font-size: 13px; vertical-align: middle; }
+  #compare-table tbody tr { cursor: pointer; }
+  #compare-table tbody tr:hover { background: #f0f8e0; }
+  #compare-table tr.sel { outline: 2px solid #333; outline-offset: -2px; }
+  #compare-table tr.bad td { color: #999; }
+
+  .cl-actions {
+    border-top: 1px solid #888;
+    margin: 16px auto 4px;
+    padding-top: 14px;
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  }
+  .calc-btn {
+    background: #7dcb00;
+    font: 600 17px 'Segoe UI', Arial, sans-serif;
+    color: #fff;
+    border: 1px solid transparent;
+    padding: 11px 26px; cursor: pointer;
+    transition: background .2s;
+  }
+  .calc-btn:hover { background: #6ab000; }
+  .calc-reset { background: #bbb; }
+  .calc-reset:hover { background: #a3a3a3; }
+  .calc-print { background: #fff; color: #444; border-color: #999; }
+  .calc-print:hover { background: #eee; }
+
+  .cl-alert { text-align: center; color: #c41e00; font-weight: 600; min-height: 24px; margin-top: 8px; }
+
+  .cl-canvas {
+    display: block; margin: 0 auto; background: #fff;
+    width: 100%; height: auto;
+    border: 1px solid #ddd;
+  }
+
+  /* === Вертикальная ориентация при < 1200px === */
+  @media (max-width: 1199px) {
+    .cl-layout {
+      flex-direction: column;
+    }
+    .cl-ui {
+      flex: 1 1 auto;
+      max-width: none;
+      min-width: 0;
+    }
+    .cl-ic {
+      flex-wrap: wrap;
+    }
+    .cl-input, .cl-result {
+      flex: 1 1 300px;
+    }
+    .cl-image {
+      padding: 16px;
+    }
+    .cl-canvas {
+      max-width: 100%;
+      height: auto;
+    }
+  }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 22px; }
+    .cl input[type="number"] { width: 96px; }
+    .calc-btn { width: 100%; }
+    #compare-table { font-size: 12px; }
+    #compare-table th, #compare-table td { padding: 4px 3px; }
+  }
+
+  @page { size: A4; margin: 10mm; }
+  @media print {
+    html, body { background: #fff !important; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 12px; }
+    .page { max-width: none; padding: 0; }
+    h1, .cl-actions, .presets, .swap-btn { display: none !important; }
+    .print_header { display: flex !important; visibility: visible !important; justify-content: space-between; align-items: baseline; margin: 0 0 6px; }
+    .print_header .name { font-size: 18px; }
+    .print_header .date { font-size: 12px; color: #333; }
+    .cl { box-shadow: none; border-radius: 0; border: 1px solid #999; page-break-inside: avoid; break-inside: avoid; }
+    .cl-layout { flex-direction: column; }
+    .cl-ui { padding: 8px 10px 4px; flex: 1 1 auto; max-width: none; min-width: 0; }
+    .cl-ic { flex-wrap: nowrap; gap: 12px; }
+    .cl-input, .cl-result { flex: 1 1 0; min-width: 0; }
+    .field { margin-bottom: 8px; }
+    .field-title { font-size: 12px; margin-bottom: 3px; }
+    .field-row { gap: 5px; }
+    .cl input[type="number"] {
+      width: 64px; padding: 2px 4px; font-size: 12px;
+    }
+    .result-value { font-size: 13px; min-width: 60px; }
+    .result-item.highlight .result-value { font-size: 15px; }
+    .x-sep { font-size: 13px; }
+    .check-row { font-size: 12px; padding: 5px 8px; margin-top: 2px; }
+    .check-row input { width: 14px; height: 14px; }
+    .result-grid { gap: 5px; }
+    .result-item { padding: 4px 8px; }
+    .result-item span { font-size: 12px; }
+    #compare-wrap { display: none !important; }
+    #compare-table { font-size: 11px; }
+    #compare-table th { font-size: 10px; }
+    #compare-table th, #compare-table td { padding: 2px 4px; }
+    #compare-table tbody tr { cursor: default; }
+    .cl-alert { min-height: 0; margin-top: 2px; font-size: 12px; }
+    .cl-alert p { margin: 2px 0; }
+    .cl-image { padding: 6px; }
+    .cl-canvas {
+      max-width: 100%; height: auto;
+      max-height: 135mm; width: auto; margin: 0 auto;
+      border-radius: 0;
+    }
+    .result-item.highlight { background: #fff !important; border-color: #000 !important; }
+    .cl-alert { color: #000 !important; }
+    .check-row input { accent-color: #000; }
+  }
+  .print_header { display: none; visibility: hidden; }
+  .print_header .name { font-size: 24px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Раскрой бумаги</h1>
+
+  <div class="print_header">
+    <div class="name">Раскрой бумаги</div>
+    <!-- <div class="date"></div> -->
+  </div>
+
+  <div id="calculator" class="cl">
+    <div class="cl-layout">
+      <div class="cl-ui">
+        <div class="cl-ic">
+          <div class="cl-input">
+            <div class="field">
+              <div class="field-title">Требуемый формат, мм</div>
+              <div class="field-row">
+                <input type="number" min="0" step="1" name="paper-width" placeholder="ширина" aria-label="Ширина изделия">
+                <span class="x-sep">×</span>
+                <input type="number" min="0" step="1" name="paper-height" placeholder="высота" aria-label="Высота изделия">
+                <button type="button" class="swap-btn" id="swap-paper" title="Повернуть изделие">⇄</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-title">Формат бумаги (лист), мм</div>
+              <div class="field-row">
+                <input type="number" min="0" step="1" name="canvas-width" placeholder="ширина" aria-label="Ширина листа">
+                <span class="x-sep">×</span>
+                <input type="number" min="0" step="1" name="canvas-height" placeholder="высота" aria-label="Высота листа">
+                <button type="button" class="swap-btn" id="swap-canvas" title="Повернуть лист">⇄</button>
+              </div>
+              <div class="presets" id="paper-presets">
+                <button type="button" class="preset-chip" data-w="470" data-h="650">470 × 650</button>
+                <button type="button" class="preset-chip" data-w="650" data-h="940">650 × 940</button>
+                <button type="button" class="preset-chip" data-w="700" data-h="1000">700 × 1000</button>
+                <button type="button" class="preset-chip" data-w="720" data-h="1040">720 × 1040</button>
+                <button type="button" class="preset-chip" data-w="787" data-h="1092">787 × 1092</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="cl-result">
+            <div class="field-title">Результат</div>
+            <div class="result-grid">
+              <div class="result-item highlight">
+                <span>Штук с листа:</span>
+                <b class="result-value" id="result-amount">—</b>
+              </div>
+              <div class="result-item">
+                <span>Процент отходов:</span>
+                <b class="result-value" id="result-trashed">—</b>
+              </div>
+              <div class="result-item">
+                <span>Допустимые зазоры:</span>
+                <b class="result-value" id="result-outline">—</b>
+              </div>
+              <label class="check-row">
+                <input type="checkbox" name="with-ruller" checked>
+                Резать с учетом долевой
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div id="compare-wrap" hidden>
+          <table id="compare-table">
+            <thead>
+              <tr><th rowspan="2">Лист, мм</th><th colspan="2">По долевой</th><th colspan="2">Без долевой</th></tr>
+              <tr><th>Штуки</th><th>Отход, %</th><th>Штуки</th><th>Отход, %</th></tr>
+            </thead>
+            <tbody id="compare-body"></tbody>
+          </table>
+        </div>
+
+        <div class="cl-actions">
+          <button class="calc-btn calc-reset" type="button">Очистить</button>
+          <button class="calc-btn calc-print" type="button">Печать</button>
+          <button class="calc-btn calc-process" type="button">Рассчитать</button>
+        </div>
+        <div class="cl-alert" id="cl-alert"></div>
+      </div>
+
+      <div class="cl-image">
+        <canvas class="cl-canvas" id="cl-canvas" width="860" height="640"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var COLOR_WHITE = '#ffffff';
+  var COLOR_BLACK = '#000000';
+  var COLOR_WASTE = '#d6d6d6';
+  var FIXED_SHEETS = [[470, 650], [650, 940], [700, 1000], [720, 1040], [787, 1092]];
+
+  var paperWElm = document.querySelector('input[name="paper-width"]');
+  var paperHElm = document.querySelector('input[name="paper-height"]');
+  var canvasWElm = document.querySelector('input[name="canvas-width"]');
+  var canvasHElm = document.querySelector('input[name="canvas-height"]');
+  var rullerElm = document.querySelector('input[name="with-ruller"]');
+  var amountElm = document.getElementById('result-amount');
+  var trashedElm = document.getElementById('result-trashed');
+  var outlineElm = document.getElementById('result-outline');
+  var alertElm = document.getElementById('cl-alert');
+  var canvasElm = document.getElementById('cl-canvas');
+  var compareWrapElm = document.getElementById('compare-wrap');
+  var compareBodyElm = document.getElementById('compare-body');
+
+  var rullerMemory = {};
+
+  var sheetHistory = [];
+  var MAX_HISTORY = 1;
+
+  function num(v) {
+    v = parseInt(v, 10);
+    if (isNaN(v) || v < 0) return 0;
+    return Math.floor(v);
+  }
+
+  function fmtWaste(w) {
+    return String(w).replace('.', ',') + ' %';
+  }
+
+  function getProduct() {
+    return { w: num(paperWElm.value), h: num(paperHElm.value) };
+  }
+
+  function getPaper() {
+    return { w: num(canvasWElm.value), h: num(canvasHElm.value) };
+  }
+
+  function sizeKey(cW, cH, pW, pH) {
+    return cW + 'x' + cH + '/' + pW + 'x' + pH;
+  }
+
+  function sameSheet(a, b) {
+    return (a.w === b.w && a.h === b.h) || (a.w === b.h && a.h === b.w);
+  }
+
+  function attachNumberInput(elm) {
+    var prev = '';
+    elm.addEventListener('input', function () {
+      var v = elm.value;
+      if (v === '') { prev = ''; }
+      else if (/^\d+$/.test(v)) {
+        elm.value = String(parseInt(v, 10));
+        prev = elm.value;
+      } else {
+        elm.value = prev;
+      }
+      syncPresetHighlight();
+    });
+    elm.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); calculate(); }
+    });
+  }
+
+  [paperWElm, paperHElm, canvasWElm, canvasHElm].forEach(attachNumberInput);
+
+  var paperPresetBtns = Array.prototype.slice.call(document.querySelectorAll('#paper-presets .preset-chip'));
+  paperPresetBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyPaper(
+        parseInt(btn.getAttribute('data-w'), 10),
+        parseInt(btn.getAttribute('data-h'), 10)
+      );
+    });
+  });
+
+  function applyPaper(w, h) {
+    canvasWElm.value = w;
+    canvasHElm.value = h;
+    syncPresetHighlight();
+    var p = getProduct();
+    if (p.w > 0 && p.h > 0) {
+      resolveRuller(w, h, p.w, p.h);
+      calculate();
+    } else {
+      canvasWElm.focus();
+    }
+  }
+
+  function syncPresetHighlight() {
+    var cw = num(canvasWElm.value), ch = num(canvasHElm.value);
+    paperPresetBtns.forEach(function (b) {
+      var bw = parseInt(b.getAttribute('data-w'), 10);
+      var bh = parseInt(b.getAttribute('data-h'), 10);
+      var match = cw > 0 && ((bw === cw && bh === ch) || (bw === ch && bh === cw));
+      b.classList.toggle('active', !!match);
+    });
+  }
+
+  document.getElementById('swap-paper').addEventListener('click', function () {
+    var t = paperWElm.value; paperWElm.value = paperHElm.value; paperHElm.value = t;
+    var p = getProduct(), c = getPaper();
+    if (p.w > 0 && p.h > 0 && c.w > 0 && c.h > 0) calculate();
+    else if (p.w > 0 && p.h > 0) calculate();
+  });
+
+  document.getElementById('swap-canvas').addEventListener('click', function () {
+    var t = canvasWElm.value; canvasWElm.value = canvasHElm.value; canvasHElm.value = t;
+    syncPresetHighlight();
+    var c = getPaper(), p = getProduct();
+    if (c.w > 0 && c.h > 0 && p.w > 0 && p.h > 0) {
+      resolveRuller(c.w, c.h, p.w, p.h);
+      calculate();
+    }
+  });
+
+  function resolveRuller(cW, cH, pW, pH) {
+    var key = sizeKey(cW, cH, pW, pH);
+    if (key in rullerMemory) {
+      rullerElm.checked = rullerMemory[key];
+      return;
+    }
+    var a = computeLayout(cW, cH, pW, pH, true);
+    var b = computeLayout(cW, cH, pW, pH, false);
+    var s = a.fits ? a.amount : 0;
+    var m = b.fits ? b.amount : 0;
+    rullerElm.checked = !(m > s);
+    rullerMemory[key] = rullerElm.checked;
+  }
+
+  function rememberRuller() {
+    var c = getPaper(), p = getProduct();
+    rullerMemory[sizeKey(c.w, c.h, p.w, p.h)] = rullerElm.checked;
+  }
+
+  rullerElm.addEventListener('change', function () {
+    rememberRuller();
+    calculate();
+  });
+
+  function bestVerticalStrips(cW, cH, pW, pH) {
+    var rowsA = Math.floor(cH / pH);
+    var rowsB = Math.floor(cH / pW);
+    var maxA = Math.floor(cW / pW);
+    var best = { total: -1, nA: 0, nB: 0, rowsA: rowsA, rowsB: rowsB, rest: 0 };
+    for (var nA = 0; nA <= maxA; nA++) {
+      var rem = cW - nA * pW;
+      var nB = Math.floor(rem / pH);
+      var total = nA * rowsA + nB * rowsB;
+      var rest = rem - nB * pH;
+      if (total > best.total || (total === best.total && rest < best.rest)) {
+        best = { total: total, nA: nA, nB: nB, rowsA: rowsA, rowsB: rowsB, rest: rest };
+      }
+    }
+    return best;
+  }
+
+  function bestHorizontalStrips(cW, cH, pW, pH) {
+    var colsA = Math.floor(cW / pW);
+    var colsB = Math.floor(cW / pH);
+    var maxA = Math.floor(cH / pH);
+    var best = { total: -1, nA: 0, nB: 0, colsA: colsA, colsB: colsB, rest: 0 };
+    for (var nA = 0; nA <= maxA; nA++) {
+      var rem = cH - nA * pH;
+      var nB = Math.floor(rem / pW);
+      var total = nA * colsA + nB * colsB;
+      var rest = rem - nB * pW;
+      if (total > best.total || (total === best.total && rest < best.rest)) {
+        best = { total: total, nA: nA, nB: nB, colsA: colsA, colsB: colsB, rest: rest };
+      }
+    }
+    return best;
+  }
+
+  function buildTilesMixed(cW, cH, pW, pH) {
+    var v = bestVerticalStrips(cW, cH, pW, pH);
+    var h = bestHorizontalStrips(cW, cH, pW, pH);
+    var tiles = [];
+    var mode;
+    if (v.total >= h.total) {
+      mode = 'вертикальные полосы' + (v.nA > 0 && v.nB > 0 ? ' (комбинированный)' : (v.nB > 0 ? ' (все повёрнуты)' : ''));
+      var x = 0, i, j;
+      for (i = 0; i < v.nA; i++) {
+        for (j = 0; j < v.rowsA; j++) tiles.push([x, j * pH, pW, pH]);
+        x += pW;
+      }
+      for (i = 0; i < v.nB; i++) {
+        for (j = 0; j < v.rowsB; j++) tiles.push([x, j * pW, pH, pW]);
+        x += pH;
+      }
+    } else {
+      mode = 'горизонтальные полосы' + (h.nA > 0 && h.nB > 0 ? ' (комбинированный)' : (h.nB > 0 ? ' (все повёрнуты)' : ''));
+      var y = 0, r, c;
+      for (r = 0; r < h.nA; r++) {
+        for (c = 0; c < h.colsA; c++) tiles.push([c * pW, y, pW, pH]);
+        y += pH;
+      }
+      for (r = 0; r < h.nB; r++) {
+        for (c = 0; c < h.colsB; c++) tiles.push([c * pH, y, pH, pW]);
+        y += pW;
+      }
+    }
+    return { tiles: tiles, mode: mode };
+  }
+
+  function wastePct(cW, cH, pW, pH, amount) {
+    return Math.round(((cW * cH - amount * pW * pH) / (cW * cH)) * 1000) / 10;
+  }
+
+  function computeLayout(cW, cH, pW, pH, withRuller) {
+    if (withRuller) {
+      if (pW > cW || pH > cH) return { fits: false };
+      var nx = Math.floor(cW / pW);
+      var ny = Math.floor(cH / pH);
+      var amount = nx * ny;
+      var s = Math.min(10, (cW % pW) / (nx + 1), (cH % pH) / (ny + 1));
+      var outline = 0;
+      if (s >= 6) outline = Math.min(10, Math.floor(s));
+      return {
+        fits: true, amount: amount, outline: outline,
+        waste: wastePct(cW, cH, pW, pH, amount),
+        nx: nx, ny: ny, mode: 'по долевой: ' + nx + ' × ' + ny
+      };
+    }
+    var straight = (pW <= cW && pH <= cH);
+    var rotated = (pW <= cH && pH <= cW);
+    if (!straight && !rotated) return { fits: false };
+    var res = buildTilesMixed(cW, cH, pW, pH);
+    return {
+      fits: true, amount: res.tiles.length, outline: 0,
+      waste: wastePct(cW, cH, pW, pH, res.tiles.length),
+      tiles: res.tiles, mode: res.mode
+    };
+  }
+
+  function setMain(amount, waste, outline) {
+    amountElm.textContent = amount;
+    trashedElm.textContent = waste;
+    outlineElm.textContent = outline;
+  }
+
+  function drawTextCenter(ctx, text, x, y) {
+    var m = ctx.measureText(String(text));
+    var cx = x - m.width / 2;
+    var base = (m.hangingBaseline !== undefined) ? m.hangingBaseline : 9;
+    ctx.fillText(String(text), cx, y + base / 2 + 1);
+  }
+
+  function drawTextVertical(ctx, text, x, y) {
+    ctx.save();
+    var m = ctx.measureText(String(text));
+    var hgt = (m.actualBoundingBoxAscent || 9) + (m.actualBoundingBoxDescent || 3);
+    ctx.translate(x + hgt, y + hgt);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(String(text), 0, -hgt - 5);
+    ctx.restore();
+  }
+
+  function drawLayout(cW, cH, pW, pH, withRuller, layout) {
+    var ctx = canvasElm.getContext('2d');
+    try { ctx.reset(); } catch (e) { ctx.clearRect(0, 0, canvasElm.width, canvasElm.height); }
+
+    var W = canvasElm.width, H = canvasElm.height;
+    var captionMargin = 34;
+    var size = Math.min(W, H) - 4;
+    var ar = cW / cH;
+    var effW, effH;
+    if (ar >= 1) { effW = size - captionMargin; effH = effW / ar; }
+    else { effH = size - captionMargin; effW = effH * ar; }
+    var X = W / 2 - effW / 2 + captionMargin / 2;
+    var Y = H / 2 - effH / 2 + captionMargin / 2;
+    var scaleX = effW / cW, scaleY = effH / cH;
+
+    ctx.font = "17px 'Segoe UI', Arial, sans-serif";
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = COLOR_BLACK;
+    ctx.fillStyle = COLOR_WASTE;
+    ctx.fillRect(X, Y, effW, effH);
+
+    var isSmallMm = pW <= 20 || pH <= 20;
+
+    if (withRuller) {
+      var nx = layout.nx, ny = layout.ny;
+      var gapX = layout.outline * scaleX, gapY = layout.outline * scaleY;
+      var tileW = pW * scaleX, tileH = pH * scaleY;
+      var n = 0;
+      var oy = Y;
+      for (var yy = 0; yy < ny; yy++) {
+        var ox = X;
+        oy += gapY;
+        for (var xx = 0; xx < nx; xx++) {
+          n++;
+          ox += gapX;
+          ctx.fillStyle = COLOR_WHITE;
+          ctx.fillRect(ox, oy, tileW, tileH);
+          ctx.strokeRect(ox, oy, tileW, tileH);
+          if (!isSmallMm && tileW > 22 && tileH > 18) {
+            ctx.fillStyle = COLOR_BLACK;
+            drawTextCenter(ctx, n, ox + tileW / 2, oy + tileH / 2);
+          }
+          ox += tileW;
+        }
+        oy += tileH;
+      }
+      ctx.beginPath();
+      var ly = Y;
+      for (var i = 0; i < ny; i++) {
+        ly += gapY;
+        ctx.moveTo(X, ly); ctx.lineTo(X + effW, ly);
+        ly += tileH;
+        ctx.moveTo(X, ly); ctx.lineTo(X + effW, ly);
+      }
+      var lx = X;
+      for (var k = 0; k < nx; k++) {
+        lx += gapX;
+        ctx.moveTo(lx, Y); ctx.lineTo(lx, Y + effH);
+        lx += tileW;
+        ctx.moveTo(lx, Y); ctx.lineTo(lx, Y + effH);
+      }
+      ctx.stroke();
+    } else {
+      var tiles = layout.tiles;
+      for (var t = 0; t < tiles.length; t++) {
+        var tx = X + tiles[t][0] * scaleX;
+        var ty = Y + tiles[t][1] * scaleY;
+        var tw = tiles[t][2] * scaleX;
+        var th = tiles[t][3] * scaleY;
+        ctx.fillStyle = COLOR_WHITE;
+        ctx.fillRect(tx, ty, tw, th);
+        ctx.strokeRect(tx, ty, tw, th);
+        if (!isSmallMm && tw > 22 && th > 18) {
+          ctx.fillStyle = COLOR_BLACK;
+          drawTextCenter(ctx, t + 1, tx + tw / 2, ty + th / 2);
+        }
+      }
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = COLOR_BLACK;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(X, Y, effW, effH);
+    ctx.lineWidth = 1;
+    ctx.fillStyle = COLOR_BLACK;
+    drawTextCenter(ctx, cW, X + effW / 2, Y - 12);
+    drawTextVertical(ctx, cH, X - 26, Y + effH / 2 - 10);
+
+  }
+
+  function renderCompare(p, c, withRuller) {
+    while (compareBodyElm.firstChild) compareBodyElm.removeChild(compareBodyElm.firstChild);
+    var hasCurrent = c.w > 0 && c.h > 0;
+    var sheets = [];
+    sheetHistory.forEach(function (s) { sheets.push({ w: s.w, h: s.h }); });
+    FIXED_SHEETS.forEach(function (fs) { sheets.push({ w: fs[0], h: fs[1] }); });
+    sheets.forEach(function (s) {
+      var layStraight = computeLayout(s.w, s.h, p.w, p.h, true);
+      var layMixed = computeLayout(s.w, s.h, p.w, p.h, false);
+      var isCurrent = hasCurrent && sameSheet(s, c);
+      var tr = document.createElement('tr');
+      if (isCurrent) tr.className = 'sel';
+      var c0 = document.createElement('td');
+      c0.textContent = s.w + '×' + s.h;
+      var c1 = document.createElement('td');
+      var c2 = document.createElement('td');
+      var c3 = document.createElement('td');
+      var c4 = document.createElement('td');
+      c1.textContent = layStraight.fits ? layStraight.amount : '—';
+      c2.textContent = layStraight.fits ? fmtWaste(layStraight.waste) : '—';
+      c3.textContent = layMixed.fits ? layMixed.amount : '—';
+      c4.textContent = layMixed.fits ? fmtWaste(layMixed.waste) : '—';
+      if (!layStraight.fits && !layMixed.fits) {
+        tr.className += (tr.className ? ' ' : '') + 'bad';
+        tr.title = 'Изделие не помещается на этот лист — клик: подставить этот лист';
+      } else {
+        var modes = [];
+        if (layStraight.fits) modes.push(layStraight.mode);
+        if (layMixed.fits) modes.push(layMixed.mode);
+        tr.title = modes.join(' · ') + ' — клик: подставить этот лист';
+      }
+      tr.addEventListener('click', function () { applyPaper(s.w, s.h); });
+      tr.appendChild(c0); tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4);
+      compareBodyElm.appendChild(tr);
+    });
+    compareWrapElm.hidden = false;
+  }
+
+  function clearCanvas() {
+    var ctx = canvasElm.getContext('2d');
+    try { ctx.reset(); } catch (e) { ctx.clearRect(0, 0, canvasElm.width, canvasElm.height); }
+  }
+
+  function calculate() {
+    clearCanvas();
+    var p = getProduct(), c = getPaper();
+    var withRuller = rullerElm.checked;
+    var msg = '⚠️ Проверьте, пожалуйста, правильность введенных Вами данных';
+
+    if (p.w <= 0 || p.h <= 0) {
+      alertElm.innerHTML = '<p>' + msg + '</p>';
+      setMain('—', '—', '—');
+      compareWrapElm.hidden = true;
+      return;
+    }
+
+    if (c.w > 0 && c.h > 0 && !FIXED_SHEETS.some(function (fs) { return sameSheet({ w: fs[0], h: fs[1] }, c); })) {
+      sheetHistory = sheetHistory.filter(function (s) { return !sameSheet(s, c); });
+      sheetHistory.push({ w: c.w, h: c.h });
+      while (sheetHistory.length > MAX_HISTORY) sheetHistory.shift();
+    }
+
+    renderCompare(p, c, withRuller);
+
+    if (c.w <= 0 || c.h <= 0) {
+      alertElm.innerHTML = '';
+      setMain('—', '—', '—');
+      return;
+    }
+    var layout = computeLayout(c.w, c.h, p.w, p.h, withRuller);
+    if (!layout.fits) {
+      alertElm.innerHTML = '<p>' + msg + '</p>';
+      setMain('—', '—', '—');
+      return;
+    }
+    alertElm.innerHTML = '';
+    setMain(layout.amount, fmtWaste(layout.waste), layout.outline);
+    drawLayout(c.w, c.h, p.w, p.h, withRuller, layout);
+  }
+
+  document.querySelector('.calc-process').addEventListener('click', calculate);
+  document.querySelector('.calc-print').addEventListener('click', function () {
+    var dt = document.querySelector('.print_header .date');
+      if (dt) {
+        var c = getPaper(), p = getProduct();
+        dt.textContent = 'Лист: ' + (c.w || '—') + '×' + (c.h || '—') + ' · Изделие: ' + (p.w || '—') + '×' + (p.h || '—');
+    }
+    window.print();
+  });
+  document.querySelector('.calc-reset').addEventListener('click', function () {
+    paperWElm.value = ''; paperHElm.value = '';
+    canvasWElm.value = ''; canvasHElm.value = '';
+    rullerElm.checked = true;
+    sheetHistory = [];
+    setMain('—', '—', '—');
+    alertElm.innerHTML = '';
+    compareWrapElm.hidden = true;
+    clearCanvas();
+    syncPresetHighlight();
+  });
+
+  paperWElm.value = 210; paperHElm.value = 297;
+  canvasWElm.value = 650; canvasHElm.value = 940;
+  syncPresetHighlight();
+  resolveRuller(650, 940, 210, 297);
+  calculate();
+})();
+</script>
+</body>
+</html>
