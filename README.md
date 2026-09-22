@@ -1,7 +1,7 @@
 
 **Калькулятор раскроя бумаги.**
 
-https://andreykalenik.github.io/paper-calс/
+[https://andreykalenik.github.io/paper-calс/](https://andreykalenik.github.io/paper-calc/)
 
 Считает схему раскроя сразу на несколько популярных форматов листа, с учётом волокна (долевой) бумаги
 
