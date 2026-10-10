@@ -202,7 +202,6 @@
     background: #eaf7cc;
     border: 1px solid #7dcb00;
     padding: 12px;
-    border-radius: 4px;
     text-align: center;
     font-size: 16px;
     font-weight: 500;
@@ -512,6 +511,10 @@
   }
 
   [paperWElm, paperHElm, canvasWElm, canvasHElm, printRunElm].forEach(attachNumberInput);
+
+  printRunElm.addEventListener('input', function () {
+    calculate();
+  });
 
   paperTypeElm.addEventListener('input', function () {
     localStorage.setItem('cl-paper-type', paperTypeElm.value);
@@ -909,13 +912,20 @@
     }
   }
 
-  document.querySelector('.calc-process').addEventListener('click', calculate);
-  document.querySelector('.calc-print').addEventListener('click', function () {
+  function preparePrint() {
+    calculate();
     var dt = document.querySelector('.print_header .date');
     if (dt) {
       var c = getPaper(), p = getProduct();
       dt.textContent = 'Лист: ' + (c.w || '—') + '×' + (c.h || '—') + ' · Изделие: ' + (p.w || '—') + '×' + (p.h || '—');
     }
+  }
+
+  window.addEventListener('beforeprint', preparePrint);
+
+  document.querySelector('.calc-process').addEventListener('click', calculate);
+  document.querySelector('.calc-print').addEventListener('click', function () {
+    preparePrint();
     window.print();
   });
   document.querySelector('.calc-reset').addEventListener('click', function () {
@@ -941,5 +951,5 @@
   calculate();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a4362ea80b04e616',t:'MTc5MDgwMjI4OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
